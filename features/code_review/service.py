@@ -10,7 +10,11 @@ from openai import OpenAI
 
 from core.config import settings, AIProvider
 from core.exceptions import AIAuthenticationError, AIRateLimitError, AIUnavailableError
-from features.code_review.models import ReviewRequest, ReviewResponse
+from features.code_review.models import (
+    ReviewRequest,
+    ReviewResponse,
+    ImageReviewRequest,
+)
 from features.code_review.prompts import SYSTEM_PROMPT, build_user_prompt
 
 logger = logging.getLogger(__name__)
@@ -107,6 +111,50 @@ class CodeReviewService:
                 f"Cannot connect to Ollama at {settings.ollama_base_url}"
                 " — is it running?"
             )
+
+    # ── Review from Image ──────────────────────────────────────────────
+    def review_from_image(self, request: ImageReviewRequest) -> ReviewResponse:
+        if not self.is_anthropic:
+            raise AIUnavailableError(
+                "Image review requires a vision model. Switch AI_PROVIDER=anthropic or"
+                "install llava in Ollama."
+            )
+        model = self._get_model(request.deep)
+        logger.info(f"Image review | model={model}")
+        client = cast(anthropic.Anthropic, self.client)
+        try:
+            message = client.messages.create(
+                model=model,
+                max_tokens=settings.max_tokens,
+                system=SYSTEM_PROMPT,
+                messages=[  # type: ignore[arg-type]
+                    {
+                        "role": "user",
+                        "content": [
+                            {  # type: ignore[arg-type]
+                                "type": "image",
+                                "source": {
+                                    "type": "base64",
+                                    "media_type": request.mime_type,
+                                    "data": request.image_base64,
+                                },
+                            },
+                            {
+                                "type": "text",
+                                "text": "Extract the code from this image and review"
+                                " it. Respond with the JSON structure specified.",
+                            },
+                        ],
+                    }
+                ],
+            )
+            text_block = next(b for b in message.content if isinstance(b, TextBlock))
+            data = json.loads(_extract_json(text_block.text))
+            return ReviewResponse(**data)
+        except anthropic.AuthenticationError:
+            raise AIAuthenticationError("Invalid Anthropic API key")
+        except anthropic.APIConnectionError:
+            raise AIUnavailableError("Cannot connect to Anthropic API")
 
     # ── Streaming ────────────────────────────────────────────────────
 

@@ -4,9 +4,16 @@ import pytest
 from unittest.mock import MagicMock  # , patch
 from core.exceptions import AIAuthenticationError, AIRateLimitError, AIUnavailableError
 
-from features.code_review.models import ReviewRequest, Language  # ← agregar Language
+from features.code_review.models import (
+    ReviewRequest,
+    ReviewResponse,
+    ImageReviewRequest,
+    Language,
+)
 from features.code_review.service import _extract_json
 from core.config import AIProvider
+
+# from conftest import MOCK_REVIEW  # ← agregar esta línea
 
 CODE = "def calcular_promedio(n):\n    return sum(n)/len(n)"
 
@@ -110,3 +117,25 @@ def test_review_deep_calls_32b(mock_ollama_service, mock_ollama_client):
     )
     model = mock_ollama_client.chat.completions.create.call_args.kwargs["model"]
     assert "32b" in model
+
+
+# ── review_from_image ─────────────────────────────────────────────────────────
+
+IMAGE_REQUEST = ImageReviewRequest(
+    image_base64="iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVQI12NgAAIABQ"
+    "AABjkB6QAAAABJRU5ErkJggg==",
+    mime_type="image/png",
+    deep=False,
+)
+
+
+def test_review_from_image_with_ollama_raises_unavailable(mock_ollama_service):
+    with pytest.raises(AIUnavailableError):
+        mock_ollama_service.review_from_image(IMAGE_REQUEST)
+
+
+def test_review_from_image_with_anthropic_returns_response(mock_anthropic_service):
+    result = mock_anthropic_service.review_from_image(IMAGE_REQUEST)
+    assert isinstance(result, ReviewResponse)
+    assert result.language_detected == "python"  # valor hardcodeado — viene del mock
+    assert result.overall_score == 6  # igual

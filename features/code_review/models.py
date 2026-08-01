@@ -19,6 +19,12 @@ class ReviewRequest(BaseModel):
     )
 
 
+class ImageReviewRequest(BaseModel):
+    image_base64: str = Field(..., description="Imagen en base64")
+    mime_type: str = Field("image/png", description="image/png, image/jpeg, etc.")
+    deep: bool = False
+
+
 class Suggestion(BaseModel):
     severity: str  # "info" | "warning" | "critical"
     category: str  # "performance" | "security" | "readability" | "bug"
