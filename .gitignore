@@ -27,3 +27,5 @@ tests/features/explain/__init__.py
 tests/features/explain/__pycache__/__init__.cpython-314.pyc
 tests/features/explain/__pycache__/test_service.cpython-314-pytest-9.1.1.pyc
 tests/features/explain/__pycache__/test_router.cpython-314-pytest-9.1.1.pyc
+code-review-frontend/package-lock.json
+code-review-frontend/.oxlintrc.json
