@@ -1,4 +1,4 @@
-from features.code_review.models import Suggestion
+from features.code_review.models import SuggestionItem
 
 SYSTEM_PROMPT = """
 You are a senior developer explaining a code issue to a junior developer.
@@ -14,7 +14,7 @@ structure:
 """
 
 
-def build_prompt(suggestion: Suggestion, code: str, language: str) -> str:
+def build_prompt(suggestion: SuggestionItem, code: str, language: str) -> str:
     return f"""Language: {language}
 
                 Original code:
@@ -24,6 +24,5 @@ def build_prompt(suggestion: Suggestion, code: str, language: str) -> str:
                 - Severity: {suggestion.severity}
                 - Category: {suggestion.category}
                 - Issue: {suggestion.description}
-                - Location: {suggestion.line_hint or "unknown"}
 
                 Explain this suggestion in detail."""

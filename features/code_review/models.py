@@ -1,40 +1,29 @@
 from pydantic import BaseModel, Field
-from enum import Enum
-
-
-class Language(str, Enum):
-    python = "python"
-    javascript = "javascript"
-    csharp = "csharp"
-    auto = "auto"  # el modelo detecta el lenguaje
 
 
 class ReviewRequest(BaseModel):
-    code: str = Field(..., min_length=10, description="Código a revisar")
-    language: Language = Language.auto
-    context: str | None = Field(None, description="Contexto opcional del código")
-    deep: bool = Field(
-        False,
-        description="False = respuesta rápida (14b) | True = análisis profundo (32b)",
-    )
+    code: str = Field(..., min_length=10)
+    language: str = "auto"
+    model_id: str = "ollama-fast"  # antes era deep: bool
 
 
 class ImageReviewRequest(BaseModel):
-    image_base64: str = Field(..., description="Imagen en base64")
-    mime_type: str = Field("image/png", description="image/png, image/jpeg, etc.")
-    deep: bool = False
+    image_base64: str
+    mime_type: str = "image/png"
+    model_id: str = "anthropic"  # default a Anthropic porque vision
 
 
-class Suggestion(BaseModel):
-    severity: str  # "info" | "warning" | "critical"
-    category: str  # "performance" | "security" | "readability" | "bug"
+class SuggestionItem(BaseModel):
+    severity: str
+    category: str
     description: str
-    line_hint: str | None = None
+    how_to_fix: str
+    example_fix: str
 
 
 class ReviewResponse(BaseModel):
+    overall_score: int
     language_detected: str
     summary: str
-    suggestions: list[Suggestion]
+    suggestions: list[SuggestionItem]
     refactored_code: str
-    overall_score: int  # 1-10

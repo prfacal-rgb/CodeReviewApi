@@ -1,12 +1,12 @@
 from pydantic import BaseModel, Field
-from features.code_review.models import Suggestion
+from features.code_review.models import SuggestionItem
 
 
 class ExplainRequest(BaseModel):
-    suggestion: Suggestion
     original_code: str = Field(..., min_length=10)
-    language: str = "python"
-    deep: bool = False
+    language: str = "auto"  # ← este campo faltaba
+    suggestion: SuggestionItem  # ← objeto completo, no string
+    model_id: str = "ollama-fast"  # antes era deep: bool
 
 
 class ExplainResponse(BaseModel):

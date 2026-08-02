@@ -1,32 +1,25 @@
-from enum import Enum
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class AIProvider(str, Enum):
-    anthropic = "anthropic"
-    ollama = "ollama"
-
-
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        extra="ignore",  # ← ignora variables del .env que no tengan campo en Settings
-    )
+    # ── Anthropic ─────────────────────────────────────────────────────────────
+    anthropic_api_key: str = ""
 
-    # Anthropic
-    anthropic_api_key: str
-    anthropic_model: str = "claude-haiku-4-5-20251001"
+    # ── Ollama (VM local) ─────────────────────────────────────────────────────
+    ollama_base_url: str = "http://192.168.56.130:11434/v1"
 
-    # Ollama
-    ollama_base_url: str = "http://localhost:11434/v1"
-    ollama_model_fast: str = "qwen2.5-coder:14b"
-    ollama_model_deep: str = "qwen2.5-coder:32b"
+    # ── Groq Cloud ────────────────────────────────────────────────────────────
+    groq_api_key: str = ""
+    groq_base_url: str = "https://api.groq.com/openai/v1"
 
-    # General
-    ai_provider: AIProvider = AIProvider.ollama
-    app_env: str = "development"
-    max_tokens: int = 2048
+    # ── Google AI Studio ──────────────────────────────────────────────────────
+    google_api_key: str = ""
+    google_base_url: str = "https://generativelanguage.googleapis.com/v1beta/openai/"
+
+    # ── General ───────────────────────────────────────────────────────────────
+    max_tokens: int = 4096
+
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
 
-settings = Settings()  # type: ignore[call-arg]
+settings = Settings()
