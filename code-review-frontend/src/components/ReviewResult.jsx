@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import SuggestionCard from './SuggestionCard'
+import CodeBlock from './CodeBlock'    // ← agregar import arriba
 import { explainSuggestion } from '../services/api'
 
 export default function ReviewResult({ result, originalCode }) {
@@ -63,13 +64,7 @@ export default function ReviewResult({ result, originalCode }) {
       ))}
 
       <h3>Código refactorizado</h3>
-      <pre style={{
-        background: '#1e1e1e', color: '#d4d4d4',
-        padding: '16px', borderRadius: '8px',
-        overflow: 'auto', fontSize: '13px', lineHeight: '1.5'
-      }}>
-        {result.refactored_code}
-      </pre>
+      <CodeBlock code={result.refactored_code} />
     </div>
   )
 }

@@ -1,3 +1,4 @@
+import CodeBlock from './CodeBlock'    // ← agregar import arriba
 const colors = { critical: '#fee2e2', warning: '#fef9c3', info: '#dbeafe' }
 const icons  = { critical: '🔴', warning: '🟡', info: '🔵' }
 
@@ -58,14 +59,7 @@ export default function SuggestionCard({ suggestion, onClick, isLoading, explana
 
           <div style={{ marginBottom: '10px' }}>
             <strong>Cómo corregirlo</strong>
-            <pre style={{
-              background: '#1e1e1e', color: '#d4d4d4',
-              padding: '10px', borderRadius: '6px',
-              fontSize: '12px', overflow: 'auto',
-              margin: '6px 0'
-            }}>
-              {explanation.example_fix}
-            </pre>
+            <CodeBlock code={explanation.example_fix} />
           </div>
 
           {explanation.references?.length > 0 && (

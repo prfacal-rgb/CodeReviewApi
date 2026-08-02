@@ -33,6 +33,13 @@ export default function App() {
 
   const handleReview = async () => {
     if (!code.trim()) return
+    const CHAR_LIMIT = 3000
+    if (code.length > CHAR_LIMIT) {
+      const ok = window.confirm(
+        `El archivo tiene ${code.length} caracteres. Con Ollama local puede tardar más de 3 minutos. ¿Continuar?`
+      )
+      if (!ok) return
+    }
     setLoading(true)
     setError(null)
     setResult(null)
@@ -46,12 +53,16 @@ export default function App() {
         deep,
         (text) => setStreamText(text)   // cada chunk actualiza el texto en pantalla
       )
-      // Stream terminó — parseá el JSON completo
-      const parsed = JSON.parse(extractJson(raw))
-      setResult(parsed)
-      setStreamText('')   // limpiar el texto crudo
+      try {
+        // Stream terminó — parseá el JSON completo
+        const parsed = JSON.parse(extractJson(raw))
+        setResult(parsed)
+        setStreamText('')   // limpiar el texto crudo
+      } catch (parseErr) {
+        setError(`El modelo respondió pero no pudo parsearse. Intentá con un archivo más corto.`)
+      }        
     } catch (e) {
-      setError('Error al conectar con la API')
+      setError(e.message || 'Error al conectar con la API')
     } finally {
       setLoading(false)
       stopTimer()
