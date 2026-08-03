@@ -12,14 +12,13 @@ function extractJson(text) {
 
 export default function App() {
   const [code,       setCode]       = useState('')
-  const [deep,       setDeep]       = useState(false)
+  const [modelId,    setModelId]    = useState('ollama-fast')   // ← antes: deep (bool)
   const [result,     setResult]     = useState(null)
   const [loading,    setLoading]    = useState(false)
   const [error,      setError]      = useState(null)
-  const [streamText, setStreamText] = useState('')   // texto crudo que llega del stream
-  const [elapsed,    setElapsed]    = useState(0)    // segundos transcurridos
+  const [streamText, setStreamText] = useState('')
+  const [elapsed,    setElapsed]    = useState(0)
 
-  // Referencia al intervalo del timer — useRef para que no cause re-renders
   const timerRef = useRef(null)
 
   const startTimer = () => {
@@ -50,17 +49,16 @@ export default function App() {
       const raw = await reviewCodeStream(
         code,
         'auto',
-        deep,
-        (text) => setStreamText(text)   // cada chunk actualiza el texto en pantalla
+        modelId,                              // ← antes: deep
+        (text) => setStreamText(text)
       )
       try {
-        // Stream terminó — parseá el JSON completo
         const parsed = JSON.parse(extractJson(raw))
         setResult(parsed)
-        setStreamText('')   // limpiar el texto crudo
+        setStreamText('')
       } catch (parseErr) {
-        setError(`El modelo respondió pero no pudo parsearse. Intentá con un archivo más corto.`)
-      }        
+        setError('El modelo respondió pero no pudo parsearse. Intentá con un archivo más corto.')
+      }
     } catch (e) {
       setError(e.message || 'Error al conectar con la API')
     } finally {
@@ -78,8 +76,8 @@ export default function App() {
     startTimer()
 
     try {
-      const res = await reviewFromImage(base64, mimeType, deep)
-      setResult(res.data)
+      const res = await reviewFromImage(base64, mimeType, modelId)  // ← antes: deep
+      setResult(res)                                                  // ← antes: res.data
     } catch (e) {
       setError(e.response?.data?.detail || 'Error procesando la imagen')
     } finally {
@@ -95,7 +93,8 @@ export default function App() {
         Pegá código, subí un archivo o una foto para obtener un review automático.
       </p>
 
-      <ModelSelector deep={deep} onChange={setDeep} />
+      {/* ← value/onChange en lugar de deep/onChange */}
+      <ModelSelector value={modelId} onChange={setModelId} disabled={loading} />
 
       <CodeInput
         code={code}
@@ -122,7 +121,6 @@ export default function App() {
         {loading ? `⏳ Analizando... ${elapsed}s` : 'Revisar código'}
       </button>
 
-      {/* Stream en vivo — aparece mientras el modelo genera la respuesta */}
       {loading && streamText && (
         <div style={{ marginTop: '16px' }}>
           <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>
@@ -156,7 +154,8 @@ export default function App() {
         </div>
       )}
 
-      <ReviewResult result={result} originalCode={code} />
+      {/* modelId se pasa para que ReviewResult lo use al llamar a explainSuggestion */}
+      <ReviewResult result={result} originalCode={code} language="auto" modelId={modelId} />
     </div>
   )
 }

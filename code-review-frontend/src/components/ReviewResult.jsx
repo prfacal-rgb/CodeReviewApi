@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import SuggestionCard from './SuggestionCard'
-import CodeBlock from './CodeBlock'    // ← agregar import arriba
+import CodeBlock from './CodeBlock'
 import { explainSuggestion } from '../services/api'
 
-export default function ReviewResult({ result, originalCode }) {
+export default function ReviewResult({ result, originalCode, modelId }) {  // ← agregar modelId
   // Mapa de índice → respuesta del /explain (para toggle expandir/cerrar)
   const [explanations, setExplanations] = useState({})
   const [loadingIdx,   setLoadingIdx]   = useState(null)
@@ -24,12 +24,12 @@ export default function ReviewResult({ result, originalCode }) {
     setLoadingIdx(index)
     try {
       const res = await explainSuggestion(
-        suggestion,
-        originalCode,
-        result.language_detected,
-        false
+        originalCode,              // ← antes era el 2º arg
+        result.language_detected,  // ← antes era el 3º arg
+        suggestion,                // ← antes era el 1º arg (ahora es el objeto completo)
+        modelId                    // ← antes era `false` (deep bool)
       )
-      setExplanations(prev => ({ ...prev, [index]: res.data }))
+      setExplanations(prev => ({ ...prev, [index]: res }))  // ← antes: res.data
     } catch (e) {
       console.error('Error al explicar sugerencia:', e)
     } finally {

@@ -1,25 +1,44 @@
-// Props:
-//   deep: boolean — false = fast, true = deep
-//   onChange: función que recibe el nuevo valor boolean
-export default function ModelSelector({ deep, onChange }) {
+import { useEffect, useState } from 'react'
+import { fetchModels } from '../services/api'
+
+export default function ModelSelector({ value, onChange, disabled }) {
+  const [models, setModels]   = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchModels()
+      .then(setModels)
+      .catch(() => setModels([]))
+      .finally(() => setLoading(false))
+  }, [])
+
+  // Agrupa los modelos por el campo "group": { local: [...], cloud: [...] }
+  const groups = models.reduce((acc, m) => {
+    const g = m.group ?? 'cloud'
+    if (!acc[g]) acc[g] = []
+    acc[g].push(m)
+    return acc
+  }, {})
+
+  const groupLabel = { local: '💻 Local', cloud: '☁️ Cloud' }
+
   return (
-    <div style={{ marginBottom: '12px' }}>
-      <label style={{ fontWeight: 'bold', marginRight: '8px' }}>
-        Modelo:
-      </label>
-      <select
-        value={deep ? 'deep' : 'fast'}
-        onChange={e => onChange(e.target.value === 'deep')}
-        style={{
-          padding: '6px 12px',
-          borderRadius: '6px',
-          border: '1px solid #ccc',
-          fontSize: '14px'
-        }}
-      >
-        <option value="fast">Rápido — qwen2.5-coder:14b</option>
-        <option value="deep">Profundo — qwen2.5-coder:32b</option>
-      </select>
-    </div>
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      disabled={disabled || loading}
+      style={{ padding: '6px 10px', borderRadius: '6px', fontSize: '0.9rem' }}
+    >
+      {loading && <option>Cargando modelos...</option>}
+      {Object.entries(groups).map(([group, items]) => (
+        <optgroup key={group} label={groupLabel[group] ?? group}>
+          {items.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.display_name}
+            </option>
+          ))}
+        </optgroup>
+      ))}
+    </select>
   )
 }
