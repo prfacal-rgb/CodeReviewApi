@@ -17,8 +17,8 @@ class SuggestionItem(BaseModel):
     severity: str
     category: str
     description: str
-    how_to_fix: str
-    example_fix: str
+    how_to_fix: str = ""  # ← default vacío, no 422 si el AI no lo devuelve
+    example_fix: str = ""  # ← ídem
 
 
 class ReviewResponse(BaseModel):

@@ -51,10 +51,19 @@ MODELS: list[ModelInfo] = [
         group="cloud",
     ),
     ModelInfo(
-        id="google",
-        display_name="Google — Gemini 2.5 Flash",
+        id="google-gemini-2.5-flash-lite",
+        display_name="Google — Gemini 2.5 Flash Lite",
         provider="google",
-        model_name="gemini-2.5-flash",
+        model_name="gemini-2.5-flash-lite",
+        supports_vision=True,
+        group="cloud",
+    ),
+    # Opción B: gemini-3.6-flash (el modelo más nuevo y recomendado en 2026)
+    ModelInfo(
+        id="google-gemini-3.6-flash",
+        display_name="Google — Gemini 3.6 Flash",
+        provider="google",
+        model_name="gemini-3.6-flash",
         supports_vision=True,
         group="cloud",
     ),
