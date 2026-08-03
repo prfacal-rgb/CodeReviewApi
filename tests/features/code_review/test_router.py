@@ -1,53 +1,105 @@
+import json
+import pytest
 from unittest.mock import MagicMock
+from fastapi.testclient import TestClient
 
-VALID_CODE = "def calcular_promedio(numeros):\n    return sum(numeros)/len(numeros)"
+from main import app
+from core.providers.base import BaseProvider
+from features.explain.router import get_explain_service
+from features.explain.service import ExplainService
+
+MOCK_EXPLAIN = {
+    "why_it_matters": "Division by zero causes unhandled exceptions.",
+    "detailed_explanation": "When nums is empty, the division fails.",
+    "example_fix": "if not nums:\n    raise ValueError('Empty list')",
+    "references": ["PEP 20"],
+}
+
+VALID_CODE = "def calcular_promedio(n):\n    return sum(n)/len(n)"
+
+VALID_SUGGESTION = {
+    "severity": "warning",
+    "category": "bug",
+    "description": "Division by zero when list is empty.",
+    "how_to_fix": "Check if nums is empty before dividing.",
+    "example_fix": "if not nums:\n    raise ValueError('Empty list')",
+}
 
 
-def test_review_success(api_client):
+# ── Fixtures ──────────────────────────────────────────────────────────────────
+
+
+@pytest.fixture
+def mock_explain_service():
+    provider = MagicMock(spec=BaseProvider)
+    provider.complete.return_value = json.dumps(MOCK_EXPLAIN)
+    return ExplainService(provider)
+
+
+@pytest.fixture
+def api_client(mock_explain_service):
+    # Override local — no pisa el api_client del conftest (que es del code_review)
+    app.dependency_overrides[get_explain_service] = lambda: mock_explain_service
+    with TestClient(app) as tc:
+        yield tc
+    app.dependency_overrides.clear()
+
+
+# ── POST /explain ─────────────────────────────────────────────────────────────
+
+
+def test_explain_success(api_client):
     response = api_client.post(
-        "/reviews", json={"code": VALID_CODE, "language": "python"}
+        "/explain",
+        json={
+            "original_code": VALID_CODE,
+            "language": "python",
+            "suggestion": VALID_SUGGESTION,
+            "model_id": "ollama-fast",
+        },
     )
     assert response.status_code == 200
     data = response.json()
-    assert data["language_detected"] == "python"
-    assert isinstance(data["suggestions"], list)
-    assert 1 <= data["overall_score"] <= 10
-    assert "refactored_code" in data
+    assert "why_it_matters" in data
+    assert "detailed_explanation" in data
+    assert "example_fix" in data
+    assert isinstance(data["references"], list)
 
 
-def test_review_uses_fast_model_by_default(api_client, mock_ollama_client):
-    api_client.post("/reviews", json={"code": VALID_CODE})
-    model = mock_ollama_client.chat.completions.create.call_args.kwargs["model"]
-    assert "14b" in model
+def test_explain_default_model_id(api_client):
+    # Sin model_id → default "ollama-fast", no debe dar error
+    response = api_client.post(
+        "/explain",
+        json={"original_code": VALID_CODE, "suggestion": VALID_SUGGESTION},
+    )
+    assert response.status_code == 200
 
 
-def test_review_uses_deep_model_when_requested(api_client, mock_ollama_client):
-    api_client.post("/reviews", json={"code": VALID_CODE, "deep": True})
-    model = mock_ollama_client.chat.completions.create.call_args.kwargs["model"]
-    assert "32b" in model
-
-
-def test_review_rejects_code_too_short(api_client):
-    assert api_client.post("/reviews", json={"code": "x = 1"}).status_code == 422
-
-
-def test_review_rejects_missing_code(api_client):
-    assert api_client.post("/reviews", json={"language": "python"}).status_code == 422
-
-
-def test_review_stream_success(api_client, mock_ollama_client):
-    def make_chunk(content):
-        chunk = MagicMock()
-        chunk.choices[0].delta.content = content
-        return chunk
-
-    mock_ollama_client.chat.completions.create.return_value = iter(
-        [
-            make_chunk('{"language_detected": "python"'),
-            make_chunk(', "summary": "ok"}'),
-        ]
+def test_explain_rejects_short_code(api_client):
+    assert (
+        api_client.post(
+            "/explain",
+            json={"original_code": "x = 1", "suggestion": VALID_SUGGESTION},
+        ).status_code
+        == 422
     )
 
-    response = api_client.post("/reviews/stream", json={"code": VALID_CODE})
-    assert response.status_code == 200
-    assert "language_detected" in response.text
+
+def test_explain_rejects_missing_suggestion(api_client):
+    assert (
+        api_client.post(
+            "/explain",
+            json={"original_code": VALID_CODE},
+        ).status_code
+        == 422
+    )
+
+
+def test_explain_rejects_missing_code(api_client):
+    assert (
+        api_client.post(
+            "/explain",
+            json={"suggestion": VALID_SUGGESTION},
+        ).status_code
+        == 422
+    )

@@ -29,3 +29,9 @@ tests/features/explain/__pycache__/test_service.cpython-314-pytest-9.1.1.pyc
 tests/features/explain/__pycache__/test_router.cpython-314-pytest-9.1.1.pyc
 code-review-frontend/package-lock.json
 code-review-frontend/.oxlintrc.json
+core/__pycache__/model_registry.cpython-314.pyc
+core/providers/__pycache__/__init__.cpython-314.pyc
+core/providers/__pycache__/base.cpython-314.pyc
+core/providers/__pycache__/anthropic_provider.cpython-314.pyc
+core/providers/__pycache__/fallback_provider.cpython-314.pyc
+core/providers/__pycache__/openai_compatible_provider.cpython-314.pyc
