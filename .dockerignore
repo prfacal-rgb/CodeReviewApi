@@ -1,0 +1,7 @@
+code-review-frontend
+.git
+.env
+__pycache__
+*.pyc
+.pytest_cache
+tests

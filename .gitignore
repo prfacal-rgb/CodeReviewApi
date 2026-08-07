@@ -35,3 +35,5 @@ core/providers/__pycache__/base.cpython-314.pyc
 core/providers/__pycache__/anthropic_provider.cpython-314.pyc
 core/providers/__pycache__/fallback_provider.cpython-314.pyc
 core/providers/__pycache__/openai_compatible_provider.cpython-314.pyc
+__pycache__/
+*.pyc
