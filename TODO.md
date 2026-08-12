@@ -137,3 +137,16 @@ import '@testing-library/jest-dom'
 `src/services/__tests__/api.test.js`
 - Mockear axios y verificar que `reviewCode` llama a POST /reviews con el body correcto
 - Verificar que `explainSuggestion` llama a POST /explain con el body correcto
+
+---
+
+## Docker — modo producción (pendiente)
+
+Ya tenemos docker-compose funcionando en modo dev (uvicorn --reload + vite dev server).
+
+Falta armar variante de producción:
+- Frontend: build con `npm run build` → servir con nginx usando `nginx.conf` (ya existe en el repo, config lista con SPA routing + cache + gzip)
+- Backend: correr uvicorn sin --reload, posiblemente con más workers
+- Un `docker-compose.prod.yml` separado, o profiles en el mismo compose
+
+No urgente, probar cuando haga falta un entorno más realista.
