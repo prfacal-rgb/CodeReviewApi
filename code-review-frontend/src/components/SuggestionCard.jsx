@@ -1,81 +1,127 @@
-import CodeBlock from './CodeBlock'    // ← agregar import arriba
-const colors = { critical: '#fee2e2', warning: '#fef9c3', info: '#dbeafe' }
-const icons  = { critical: '🔴', warning: '🟡', info: '🔵' }
+const SEVERITY = {
+  critical: {
+    border:  'border-l-red-500',
+    badge:   'bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-400',
+    label:   '🔴 CRÍTICO',
+  },
+  warning: {
+    border:  'border-l-amber-400',
+    badge:   'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400',
+    label:   '🟡 ADVERTENCIA',
+  },
+  info: {
+    border:  'border-l-blue-400',
+    badge:   'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400',
+    label:   '🔵 INFO',
+  },
+}
 
 export default function SuggestionCard({ suggestion, onClick, isLoading, explanation }) {
+  const cfg        = SEVERITY[suggestion.severity] || SEVERITY.info
+  const hasExplain = !!explanation
+
   return (
-    <div
-      onClick={onClick}
-      onMouseEnter={e => e.currentTarget.style.borderColor = '#93c5fd'}
-      onMouseLeave={e => e.currentTarget.style.borderColor = 'transparent'}
-      style={{
-        background: colors[suggestion.severity] || '#f5f5f5',
-        borderRadius: '8px',
-        padding: '12px',
-        marginBottom: '10px',
-        cursor: 'pointer',
-        border: '2px solid transparent',
-        transition: 'border-color 0.15s',
-      }}
-    >
-      {/* Cabecera de la sugerencia */}
-      <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
-        {icons[suggestion.severity]} [{suggestion.category}] {suggestion.description}
+    <div className={`rounded-xl border border-l-4 ${cfg.border} border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden transition-shadow hover:shadow-sm`}>
+
+      {/* ── Body ────────────────────────────────────────────────────── */}
+      <div className="p-4 space-y-3">
+
+        {/* Badges */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${cfg.badge}`}>
+            {cfg.label}
+          </span>
+          <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            {suggestion.category}
+          </span>
+        </div>
+
+        {/* Description */}
+        <p className="text-sm text-slate-800 dark:text-slate-200 leading-relaxed">
+          {suggestion.description}
+        </p>
+
+        {/* How to fix */}
+        {suggestion.how_to_fix && (
+          <div className="space-y-1">
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              Cómo corregirlo
+            </p>
+            <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+              {suggestion.how_to_fix}
+            </p>
+          </div>
+        )}
+
+        {/* Example fix */}
+        {suggestion.example_fix && (
+          <pre className="text-xs font-mono bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg p-3 overflow-x-auto leading-relaxed">
+            {suggestion.example_fix}
+          </pre>
+        )}
+
+        {/* Explain button */}
+        <button
+          onClick={onClick}
+          disabled={isLoading}
+          className={[
+            'text-xs font-medium px-3 py-1.5 rounded-lg transition-all duration-150',
+            'disabled:opacity-50 disabled:cursor-not-allowed',
+            hasExplain
+              ? 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-200 dark:hover:bg-indigo-900'
+              : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600',
+          ].join(' ')}
+        >
+          {isLoading ? '⏳ Explicando…' : hasExplain ? '▲ Cerrar explicación' : '✨ Explicar en detalle'}
+        </button>
       </div>
-      {suggestion.line_hint && (
-        <div style={{ fontSize: '12px', color: '#555' }}>📍 {suggestion.line_hint}</div>
-      )}
 
-      {/* Hint de que es clickeable */}
-      {!isLoading && !explanation && (
-        <div style={{ marginTop: '6px', fontSize: '11px', color: '#888' }}>
-          🔎 Click para explicación detallada
-        </div>
-      )}
+      {/* ── Explanation panel ────────────────────────────────────────── */}
+      {hasExplain && (
+        <div className="border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 p-4 space-y-4">
 
-      {/* Loading */}
-      {isLoading && (
-        <div style={{ marginTop: '8px', fontSize: '13px', color: '#555' }}>
-          ⏳ Generando explicación...
-        </div>
-      )}
+          <Section label="¿Por qué importa?">
+            <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+              {explanation.why_it_matters}
+            </p>
+          </Section>
 
-      {/* Explicación expandida */}
-      {explanation && (
-        <div style={{
-          marginTop: '12px',
-          borderTop: '1px solid rgba(0,0,0,0.1)',
-          paddingTop: '10px'
-        }}>
-          <div style={{ marginBottom: '10px' }}>
-            <strong>¿Por qué importa?</strong>
-            <p style={{ margin: '4px 0', fontSize: '13px' }}>{explanation.why_it_matters}</p>
-          </div>
+          <Section label="Explicación detallada">
+            <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
+              {explanation.detailed_explanation}
+            </p>
+          </Section>
 
-          <div style={{ marginBottom: '10px' }}>
-            <strong>Explicación</strong>
-            <p style={{ margin: '4px 0', fontSize: '13px' }}>{explanation.detailed_explanation}</p>
-          </div>
-
-          <div style={{ marginBottom: '10px' }}>
-            <strong>Cómo corregirlo</strong>
-            <CodeBlock code={explanation.example_fix} />
-          </div>
-
-          {explanation.references?.length > 0 && (
-            <div>
-              <strong>Referencias</strong>
-              <ul style={{ margin: '4px 0', paddingLeft: '20px', fontSize: '13px' }}>
-                {explanation.references.map((ref, i) => <li key={i}>{ref}</li>)}
-              </ul>
-            </div>
+          {explanation.example_fix && (
+            <Section label="Ejemplo corregido">
+              <pre className="text-xs font-mono bg-slate-950 text-green-400 rounded-lg p-3 overflow-x-auto leading-relaxed">
+                {explanation.example_fix}
+              </pre>
+            </Section>
           )}
 
-          <div style={{ marginTop: '8px', fontSize: '11px', color: '#888' }}>
-            🔼 Click para cerrar
-          </div>
+          {explanation.references?.length > 0 && (
+            <Section label="Referencias">
+              <ul className="space-y-0.5">
+                {explanation.references.map((ref, i) => (
+                  <li key={i} className="text-xs text-indigo-600 dark:text-indigo-400">• {ref}</li>
+                ))}
+              </ul>
+            </Section>
+          )}
         </div>
       )}
+    </div>
+  )
+}
+
+function Section({ label, children }) {
+  return (
+    <div className="space-y-1">
+      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+        {label}
+      </p>
+      {children}
     </div>
   )
 }

@@ -1,85 +1,109 @@
 import { useRef } from 'react'
 
-export default function CodeInput({ code, onChange, onFileUpload, onImageUpload }) {
-  const fileRef = useRef()   // referencia al input[type=file] oculto para código
-  const imgRef  = useRef()   // referencia al input[type=file] oculto para imágenes
+const ACCEPT_CODE  = '.py,.js,.ts,.jsx,.tsx,.cs,.java,.go,.rs,.cpp,.c,.php,.rb,.swift,.kt,.sql,.html,.css'
+const ACCEPT_IMAGE = 'image/png,image/jpeg,image/webp,image/gif'
 
-  // Lee el archivo de texto y pasa el contenido al padre
+export default function CodeInput({ code, onChange, onFileUpload, onImageUpload, disabled }) {
+  const fileRef = useRef(null)
+  const imgRef  = useRef(null)
+
   const handleFile = (e) => {
-    const file = e.target.files[0]
+    const file = e.target.files?.[0]
     if (!file) return
     const reader = new FileReader()
     reader.onload = (ev) => onFileUpload(ev.target.result)
     reader.readAsText(file)
+    e.target.value = ''
   }
 
-  // Lee la imagen, la convierte a base64 y pasa al padre
   const handleImage = (e) => {
-    const file = e.target.files[0]
+    const file = e.target.files?.[0]
     if (!file) return
     const reader = new FileReader()
     reader.onload = (ev) => {
-      // ev.target.result = "data:image/png;base64,ABC123..."
-      // necesitamos solo "ABC123..." (lo que está después de la coma)
       const base64 = ev.target.result.split(',')[1]
       onImageUpload(base64, file.type)
     }
     reader.readAsDataURL(file)
+    e.target.value = ''
   }
 
+  const charCount = code.length
+  const charColor = charCount > 3000
+    ? 'text-red-500'
+    : charCount > 1500
+    ? 'text-amber-500'
+    : 'text-slate-400 dark:text-slate-500'
+
   return (
-    <div>
-      {/* Botones que disparan los inputs ocultos */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-        <button onClick={() => fileRef.current.click()} style={btnStyle}>
-          📄 Subir archivo
-        </button>
-        <button onClick={() => imgRef.current.click()} style={btnStyle}>
-          🖼️ Subir imagen
-        </button>
+    <div className="space-y-1.5">
+      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+        Código a revisar
+      </label>
+
+      <div className="rounded-xl border border-slate-300 dark:border-slate-600 overflow-hidden focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent transition-all duration-150">
+        <textarea
+          value={code}
+          onChange={(e) => onChange(e.target.value)}
+          disabled={disabled}
+          placeholder="// Pegá tu código aquí, o usá los botones para cargar un archivo o imagen…"
+          spellCheck={false}
+          className="
+            w-full h-72 p-4 resize-none font-mono text-sm leading-relaxed
+            bg-white dark:bg-slate-800
+            text-slate-900 dark:text-slate-100
+            placeholder-slate-400 dark:placeholder-slate-500
+            focus:outline-none
+            disabled:opacity-60
+          "
+        />
+
+        {/* Toolbar */}
+        <div className="flex items-center justify-between px-4 py-2 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-200 dark:border-slate-700">
+          <span className={`text-xs font-mono tabular-nums ${charColor}`}>
+            {charCount > 0 ? `${charCount.toLocaleString()} caracteres` : 'Sin contenido'}
+          </span>
+
+          <div className="flex gap-2">
+            <input ref={fileRef}  type="file" className="hidden" accept={ACCEPT_CODE}  onChange={handleFile} />
+            <input ref={imgRef}   type="file" className="hidden" accept={ACCEPT_IMAGE} onChange={handleImage} />
+
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              disabled={disabled}
+              className="
+                flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg
+                bg-white dark:bg-slate-700
+                border border-slate-300 dark:border-slate-600
+                text-slate-600 dark:text-slate-300
+                hover:bg-slate-100 dark:hover:bg-slate-600
+                disabled:opacity-50 disabled:cursor-not-allowed
+                transition-colors duration-150
+              "
+            >
+              📎 Archivo
+            </button>
+
+            <button
+              type="button"
+              onClick={() => imgRef.current?.click()}
+              disabled={disabled}
+              className="
+                flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg
+                bg-white dark:bg-slate-700
+                border border-slate-300 dark:border-slate-600
+                text-slate-600 dark:text-slate-300
+                hover:bg-slate-100 dark:hover:bg-slate-600
+                disabled:opacity-50 disabled:cursor-not-allowed
+                transition-colors duration-150
+              "
+            >
+              📷 Imagen
+            </button>
+          </div>
+        </div>
       </div>
-
-      {/* Inputs ocultos — el usuario los "ve" a través de los botones de arriba */}
-      <input
-        ref={fileRef}
-        type="file"
-        accept=".py,.js,.cs,.ts,.java,.go,.rs"
-        style={{ display: 'none' }}
-        onChange={handleFile}
-      />
-      <input
-        ref={imgRef}
-        type="file"
-        accept="image/*"
-        style={{ display: 'none' }}
-        onChange={handleImage}
-      />
-
-      <textarea
-        value={code}
-        onChange={e => onChange(e.target.value)}
-        placeholder="Pegá tu código aquí..."
-        rows={14}
-        style={{
-          width: '100%',
-          fontFamily: 'monospace',
-          fontSize: '13px',
-          padding: '12px',
-          borderRadius: '8px',
-          border: '1px solid #ccc',
-          boxSizing: 'border-box',
-          resize: 'vertical'
-        }}
-      />
     </div>
   )
-}
-
-const btnStyle = {
-  padding: '6px 14px',
-  borderRadius: '6px',
-  border: '1px solid #ccc',
-  cursor: 'pointer',
-  background: '#f5f5f5',
-  fontSize: '13px'
 }
