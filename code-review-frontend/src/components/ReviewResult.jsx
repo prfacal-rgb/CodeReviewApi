@@ -1,35 +1,29 @@
 import { useState } from 'react'
 import SuggestionCard from './SuggestionCard'
-import CodeBlock from './CodeBlock'
+import CodeBlock      from './CodeBlock'
 import { explainSuggestion } from '../services/api'
 
-export default function ReviewResult({ result, originalCode, modelId }) {  // ← agregar modelId
-  // Mapa de índice → respuesta del /explain (para toggle expandir/cerrar)
+function scoreStyle(score) {
+  if (score >= 8) return { ring: 'border-green-500 text-green-600 dark:text-green-400',  bg: 'bg-green-50  dark:bg-green-950/20  border-green-200  dark:border-green-800'  }
+  if (score >= 5) return { ring: 'border-amber-400 text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800' }
+  return               { ring: 'border-red-500   text-red-600   dark:text-red-400',   bg: 'bg-red-50   dark:bg-red-950/20   border-red-200   dark:border-red-800'   }
+}
+
+export default function ReviewResult({ result, originalCode, modelId }) {
   const [explanations, setExplanations] = useState({})
   const [loadingIdx,   setLoadingIdx]   = useState(null)
 
   if (!result) return null
 
   const handleExplain = async (suggestion, index) => {
-    // Si ya está explicada, toggle para cerrar
     if (explanations[index]) {
-      setExplanations(prev => {
-        const next = { ...prev }
-        delete next[index]
-        return next
-      })
+      setExplanations(prev => { const next = { ...prev }; delete next[index]; return next })
       return
     }
-
     setLoadingIdx(index)
     try {
-      const res = await explainSuggestion(
-        originalCode,              // ← antes era el 2º arg
-        result.language_detected,  // ← antes era el 3º arg
-        suggestion,                // ← antes era el 1º arg (ahora es el objeto completo)
-        modelId                    // ← antes era `false` (deep bool)
-      )
-      setExplanations(prev => ({ ...prev, [index]: res }))  // ← antes: res.data
+      const res = await explainSuggestion(originalCode, result.language_detected, suggestion, modelId)
+      setExplanations(prev => ({ ...prev, [index]: res }))
     } catch (e) {
       console.error('Error al explicar sugerencia:', e)
     } finally {
@@ -37,34 +31,79 @@ export default function ReviewResult({ result, originalCode, modelId }) {  // �
     }
   }
 
-  const scoreColor = result.overall_score >= 7 ? 'green'
-                   : result.overall_score >= 4 ? 'orange'
-                   : 'red'
+  const { ring, bg } = scoreStyle(result.overall_score)
+
+  const criticalCount = result.suggestions.filter(s => s.severity === 'critical').length
+  const warningCount  = result.suggestions.filter(s => s.severity === 'warning').length
 
   return (
-    <div style={{ marginTop: '24px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2 style={{ margin: 0 }}>Resultado</h2>
-        <span style={{ fontSize: '28px', fontWeight: 'bold', color: scoreColor }}>
-          {result.overall_score}/10
-        </span>
+    <div className="space-y-8">
+
+      {/* ── Score + summary ─────────────────────────────────────────── */}
+      <div className={`rounded-xl border-2 p-6 ${bg}`}>
+        <div className="flex items-start gap-6">
+
+          {/* Score ring */}
+          <div className={`shrink-0 w-20 h-20 rounded-full border-4 flex flex-col items-center justify-center ${ring}`}>
+            <span className="text-2xl font-bold leading-none">{result.overall_score}</span>
+            <span className="text-xs font-medium opacity-70">/10</span>
+          </div>
+
+          {/* Summary */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
+              <h2 className="text-base font-bold">Resultado del análisis</h2>
+              <span className="text-xs font-mono bg-white/60 dark:bg-black/20 px-2 py-0.5 rounded-full text-slate-600 dark:text-slate-400">
+                {result.language_detected}
+              </span>
+            </div>
+            <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+              {result.summary}
+            </p>
+            <div className="flex flex-wrap gap-4 mt-3 text-xs font-medium">
+              {criticalCount > 0 && (
+                <span className="text-red-600 dark:text-red-400">
+                  🔴 {criticalCount} crítico{criticalCount !== 1 ? 's' : ''}
+                </span>
+              )}
+              {warningCount > 0 && (
+                <span className="text-amber-600 dark:text-amber-400">
+                  🟡 {warningCount} advertencia{warningCount !== 1 ? 's' : ''}
+                </span>
+              )}
+              <span className="text-slate-500 dark:text-slate-400">
+                {result.suggestions.length} sugerencia{result.suggestions.length !== 1 ? 's' : ''} en total
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <p style={{ color: '#444', margin: '8px 0 20px' }}>{result.summary}</p>
+      {/* ── Suggestions ─────────────────────────────────────────────── */}
+      <div className="space-y-4">
+        <h3 className="font-semibold text-base">
+          Sugerencias{' '}
+          <span className="text-slate-400 dark:text-slate-500 font-normal text-sm">
+            ({result.suggestions.length})
+          </span>
+        </h3>
+        {result.suggestions.map((s, i) => (
+          <SuggestionCard
+            key={i}
+            suggestion={s}
+            onClick={() => handleExplain(s, i)}
+            isLoading={loadingIdx === i}
+            explanation={explanations[i]}
+          />
+        ))}
+      </div>
 
-      <h3>Sugerencias ({result.suggestions.length})</h3>
-      {result.suggestions.map((s, i) => (
-        <SuggestionCard
-          key={i}
-          suggestion={s}
-          onClick={() => handleExplain(s, i)}
-          isLoading={loadingIdx === i}
-          explanation={explanations[i]}
-        />
-      ))}
+      {/* ── Refactored code ─────────────────────────────────────────── */}
+      <div className="space-y-3">
+        <h3 className="font-semibold text-base">Código refactorizado</h3>
+        <CodeBlock code={result.refactored_code} />
+      </div>
 
-      <h3>Código refactorizado</h3>
-      <CodeBlock code={result.refactored_code} />
     </div>
   )
 }
